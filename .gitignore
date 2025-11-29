@@ -1,0 +1,6 @@
+module/__pycache__/
+module/cogs/__pycache__/
+
+Persistence
+.venv
+.env

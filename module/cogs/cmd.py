@@ -84,7 +84,7 @@ class Cmd(commands.Cog):
                 else:
                     await ctx.send(f"**[{my_id}]** Command Result:\n ```bash\n{final_result}\n```")
             except Exception as e:
-                await ctx.send(f"Error: {e}")
+                await ctx.send(f"**[{my_id}]** Error: {e}")
 
 async def setup(app: commands.Bot):
     await app.add_cog(Cmd(app))

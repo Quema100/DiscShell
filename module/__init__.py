@@ -1,5 +1,6 @@
 from .discdshell import DiscShell
 from .persistence import Persistence
+from .constants import *
 from .cogs import *
 
 __all__ = ["DiscShell", "Persistence"]

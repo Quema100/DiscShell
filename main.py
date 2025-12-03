@@ -1,9 +1,17 @@
 import os
+# import sys 
 import random
 import asyncio
 import socket
 from module import DiscShell, Persistence
 from dotenv import load_dotenv
+
+# def resource_path(relative_path):
+#     try:
+#         base_path = sys._MEIPASS
+#     except Exception:
+#         base_path = os.path.abspath(".")
+#     return os.path.join(base_path, relative_path)
 
 def get_dynamic_id():
     hostname = socket.gethostname()
@@ -12,6 +20,9 @@ def get_dynamic_id():
 
 async def main():
     try:
+        # If you want to convert to an .exe file, use this code:
+        # env_path = resource_path('.env') 
+        # load_dotenv(env_path)
         load_dotenv(verbose=True)
         my_port_id = get_dynamic_id()
         print(f"Device ID Generated: {my_port_id}")

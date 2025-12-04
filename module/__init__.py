@@ -1,4 +1,4 @@
-from .discdshell import DiscShell
+from .discshell import DiscShell
 from .persistence import Persistence
 from .constants import *
 from .cogs import *

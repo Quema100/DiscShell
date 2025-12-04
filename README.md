@@ -58,7 +58,7 @@ It uses a Discord server as a Command and Control (C2) channel, allowing multipl
 DiscShell/
 ├── main.py   
 ├── modules/
-│   ├── discdshell.py 
+│   ├── discshell.py 
 │   ├── persistence.py  
 │   ├── constants.py
 │   ├── __init__.py 

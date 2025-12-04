@@ -1,7 +1,12 @@
-import ctypes
 import os
 import sys
+import ctypes
+# Uncomment this section if you intend to use the shutil module.
+# import shutil 
+# import subprocess
 from .constants import PERSISTENCE_DIRECTORY
+# Needed when registering in the registry
+# from winreg import SetValueEx, CreateKey, HKEY_CURRENT_USER, REG_SZ
 
 class Persistence:
     def __init__(self):

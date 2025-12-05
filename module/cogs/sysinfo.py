@@ -43,8 +43,6 @@ class SystemInfo(commands.Cog):
                 cpu_name = self.get_powershell("Get-CimInstance Win32_Processor | Select-Object -ExpandProperty Name")
                 cpu_cores = os.cpu_count()
                 
-                cpu_cores = os.cpu_count()
-
                 total_ram_str = self.get_powershell("Get-CimInstance Win32_ComputerSystem | Select-Object -ExpandProperty TotalPhysicalMemory")
                 free_ram_kb_str = self.get_powershell("Get-CimInstance Win32_OperatingSystem | Select-Object -ExpandProperty FreePhysicalMemory")          
                 

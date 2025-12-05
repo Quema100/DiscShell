@@ -1,4 +1,8 @@
-# DiscShell
+<p align="center">
+  <img src="./assets/imgs/DiscShell_icon.png" alt="DiscShell icon" width="200" />
+</p>
+
+<h1 align="center">DiscShell</h1>
 
 Python-Based Remote Management & Security Research Framework Utilizing Discord as C2
 
@@ -133,7 +137,7 @@ When a client (endpoint) is connected, you can directly control it from Discord:
 >       ```
 >   2. Build:
 >      ``` ps
->      pyinstaller -w -F --add-data=".env;." -n=DisCShell main.py
+>      pyinstaller -w -F --add-data=".env;."  -n=DisCShell --icon=./assets/icons/DiscShell_icon.ico main.py
 >      ```
 
 ## Contributing

@@ -263,7 +263,7 @@ class Observer(commands.Cog):
             return
 
         if (seconds > 90) or (arg and arg.isdigit() and int(arg) > 90):
-            await ctx.send("❌ The maximum allowed duration is 90 seconds.")
+            await ctx.send("The maximum allowed duration is 90 seconds.")
             return
         
         should_run = False

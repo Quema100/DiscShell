@@ -1,6 +1,7 @@
 import os
 import shutil
 import ctypes
+import locale
 import platform
 import subprocess
 from datetime import timedelta
@@ -95,13 +96,15 @@ class SystemInfo(commands.Cog):
             startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
             
             ps_cmd = f'powershell -NoProfile -ExecutionPolicy Bypass -Command "{command}"'
+
+            encoding = locale.getpreferredencoding() or 'utf-8'
             
             output = subprocess.check_output(
                 ps_cmd, 
                 startupinfo=startupinfo,
                 shell=True, 
                 stderr=subprocess.DEVNULL
-            ).decode('cp949', errors='ignore').strip()
+            ).decode(encoding, errors='ignore').strip()
             
             lines = [line.strip() for line in output.split('\n') if line.strip()]
             

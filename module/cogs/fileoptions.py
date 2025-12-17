@@ -68,7 +68,7 @@ class FileOps(commands.Cog):
             await ctx.send(f"**[{my_id}]** Cannot read file info (Permission denied).")
             return
 
-        await ctx.send(f"**[{my_id}]** Uploading `{os.path.basename(final_path)}`...")
+        await ctx.send(f"**[{my_id}]** Downloading `{os.path.basename(final_path)}`...")
         
         async with ctx.typing():
             try:
@@ -128,7 +128,7 @@ class FileOps(commands.Cog):
             await ctx.send(f"**[{my_id}]** Directory not found:\n`{save_dir}`")            
             return
 
-        await ctx.send(f"**[{my_id}]** Saving {len(ctx.message.attachments)} file(s) to `{save_dir}`...")
+        await ctx.send(f"**[{my_id}]** Uploading {len(ctx.message.attachments)} file(s) to `{save_dir}`...")
 
         try:
             saved_count = 0

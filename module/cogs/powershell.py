@@ -1,8 +1,10 @@
 import io
 import os
+import sys
 import locale
 import asyncio
 import discord
+import subprocess
 from discord.ext import commands
 
 class PowerShell(commands.Cog):
@@ -60,17 +62,13 @@ class PowerShell(commands.Cog):
                 ps_cmd = f'powershell -NoProfile -ExecutionPolicy Bypass -Command "{command}"'
                 proc = await asyncio.create_subprocess_shell(
                     ps_cmd,
+                    stdin=asyncio.subprocess.PIPE,
                     stdout=asyncio.subprocess.PIPE,
-                    stderr=asyncio.subprocess.PIPE
+                    stderr=asyncio.subprocess.PIPE,
+                    creationflags=subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0
                 )
 
-                try:
-                    stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=60)
-                except asyncio.TimeoutError:
-                    proc.kill() 
-                    await ctx.send(f"**[{my_id}]** Timeout! Command took too long and was killed.")
-                    return
-                
+                stdout, stderr = await proc.communicate()
                 encoding = locale.getpreferredencoding() or 'utf-8'
 
                 output = stdout.decode(encoding, errors='replace')

@@ -63,7 +63,14 @@ class Cmd(commands.Cog):
                     stderr=asyncio.subprocess.PIPE
                 )
 
-                stdout, stderr = await proc.communicate()
+
+                try:
+                    stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=60)
+                except asyncio.TimeoutError:
+                    proc.kill() 
+                    await ctx.send(f"**[{my_id}]** Timeout! Command took too long and was killed.")
+                    return
+                
                 encoding = locale.getpreferredencoding() or 'utf-8'
 
                 output = stdout.decode(encoding, errors='replace')
